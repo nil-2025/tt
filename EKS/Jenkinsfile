@@ -3,30 +3,30 @@ pipeline {
     environment {
         AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-        AWS_DEFAULT_REGION = 'us-east-2'
+        AWS_DEFAULT_REGION = "ap-south-1"
     }
-    stages{
+    stages {
         stage('Checkout SCM'){
             steps{
                 script{
-                    //Generate  using pipeline syntax
+                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/..../...git']])
                 }
             }
         }
-         stage('Initializing Terraform'){
+        stage('Initializing Terraform'){
             steps{
                 script{
                     dir('EKS'){
-                         sh 'terraform init'
+                        sh 'terraform init'
                     }
                 }
             }
         }
-        stage('Formating terraform code'){
+        stage('Formatting Terraform Code'){
             steps{
                 script{
                     dir('EKS'){
-                         sh 'terraform fmt'
+                        sh 'terraform fmt'
                     }
                 }
             }
@@ -35,37 +35,39 @@ pipeline {
             steps{
                 script{
                     dir('EKS'){
-                         sh 'terraform validate'
+                        sh 'terraform validate'
                     }
                 }
             }
         }
-        stage('Previewing the infrastructure'){
+        stage('Previewing the Infra using Terraform'){
             steps{
                 script{
                     dir('EKS'){
-                         sh 'terraform plan'
+                        sh 'terraform plan'
                     }
-                    input(message: "Are you sure to proceed?", ok: "proceed")
+                    
                 }
             }
         }
-        stage('Creating/Destroying an EKS cluster'){
+        stage('Creating an EKS Cluster'){
             steps{
                 script{
-                    dir('EKS'){
-                         sh 'terraform $action --auto-approve'
+                    dir('EKS') {
+                        sh 'terraform apply --auto-approve'
                     }
                 }
             }
         }
-        stage("Deploying Nginx"){
+        stage('Deploying Nginx Application') {
             steps{
                 script{
-                    dir('EKS/configuration-files'){
+                    dir('EKS/configuration-files') {
                         sh 'aws eks update-kubeconfig --name my-eks-cluster'
+                        
                         sh 'kubectl apply -f deployment.yml'
-                        sh 'kubectl apply -f service.yml'
+                        sh 'kubectl apply -f service.yaml'
+                        
                     }
                 }
             }
